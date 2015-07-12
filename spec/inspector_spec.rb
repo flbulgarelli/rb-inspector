@@ -29,7 +29,6 @@ describe Inspector do
     it { expect(code.has_binding? 'bar').to be false }
   end
 
-
   context 'when scoped class declaration' do
     let(:code) { Inspector::Code.parse 'class X::Foo; def bar; end; end' }
 
@@ -41,6 +40,26 @@ describe Inspector do
 
     it { expect(code.has_binding? 'Foo').to be true }
   end
+
+  context 'when module declaration' do
+    let(:code) { Inspector::Code.parse 'module Foo; def bar; end; end' }
+
+    it { expect(code.has_binding? 'Foo').to be true }
+    it { expect(code.has_binding? 'bar').to be false }
+  end
+
+  context 'when scoped module declaration' do
+    let(:code) { Inspector::Code.parse 'module X::Foo; def bar; end; end' }
+
+    it { expect(code.has_binding? 'Foo').to be false }
+  end
+
+  context 'when top level module declaration' do
+    let(:code) { Inspector::Code.parse 'module ::Foo; def bar; end; end' }
+
+    it { expect(code.has_binding? 'Foo').to be true }
+  end
+
 
 
   context 'when multiple declarations' do
