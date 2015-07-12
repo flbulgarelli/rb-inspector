@@ -14,4 +14,12 @@ describe Inspector do
     it { expect(code.has_binding? 'foo').to be false }
     it { expect(code.has_binding? 'x').to be true }
   end
+
+  context 'when method declaration' do
+    let(:code) { Inspector::Code.parse 'def foo; x = 4; x ; end' }
+
+    it { expect(code.has_binding? 'foo').to be true }
+    it { expect(code.has_binding? 'x').to be false }
+  end
+
 end

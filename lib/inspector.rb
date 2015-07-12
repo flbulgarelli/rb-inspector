@@ -7,6 +7,8 @@ module Inspector
       declarations.any? do |declaration|
         if declaration.type == :lvasgn
           declaration.children[0].to_s == binding
+        elsif declaration.type == :def
+          declaration.children[0].to_s == binding
         end
       end
     end
