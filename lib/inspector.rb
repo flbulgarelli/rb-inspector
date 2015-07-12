@@ -9,6 +9,8 @@ module Inspector
           declaration.children[0].to_s == binding
         elsif declaration.type == :def
           declaration.children[0].to_s == binding
+        elsif declaration.type == :class &&  declaration.children[0].type == :const && declaration.children[0].children[0].nil?
+          declaration.children[0].children[1].to_s == binding
         end
       end
     end
