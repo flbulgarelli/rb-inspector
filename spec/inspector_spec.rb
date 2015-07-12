@@ -30,6 +30,19 @@ describe Inspector do
   end
 
 
+  context 'when scoped class declaration' do
+    let(:code) { Inspector::Code.parse 'class X::Foo; def bar; end; end' }
+
+    it { expect(code.has_binding? 'Foo').to be false }
+  end
+
+  context 'when top level class declaration' do
+    let(:code) { Inspector::Code.parse 'class ::Foo; def bar; end; end' }
+
+    it { expect(code.has_binding? 'Foo').to be true }
+  end
+
+
   context 'when multiple declarations' do
     let(:code) { Inspector::Code.parse 'def bar; 4; end; x = 2; z = 7' }
 
