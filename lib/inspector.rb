@@ -1,25 +1,112 @@
 require 'parser/current'
 require "inspector/version"
+require 'ostruct'
 
-module Inspector
-  module Expectations
-    def has_binding?(binding)
-      declarations.any? do |declaration|
-        if declaration.type == :lvasgn
-          declaration.children[0].to_s == binding
-        elsif declaration.type == :def
-          declaration.children[0].to_s == binding
-        elsif declaration.type == :class &&  declaration.children[0].type == :const && (declaration.children[0].children[0].nil? || declaration.children[0].children[0].type == :cbase)
-          declaration.children[0].children[1].to_s == binding
-        elsif declaration.type == :module &&  declaration.children[0].type == :const && (declaration.children[0].children[0].nil? || declaration.children[0].children[0].type == :cbase)
-          declaration.children[0].children[1].to_s == binding
+module AST
+  class Node
+    def match(*cases)
+      cases.each do |it|
+        binding = it.pattern.bind(self)
+        if binding
+          return it.action.call(*binding)
         end
       end
     end
 
-    def has_usage?(binding, target)
-
+    def components
+      [type] + children
     end
+
+  end
+
+  module Patterns
+    class Decons
+      def initialize(subpatterns)
+        @subpatterns = subpatterns
+      end
+
+      def bind(node)
+        return if node.nil?
+        return unless node.is_a?(AST::Node)
+        return if node.components.length != @subpatterns.length
+
+        bindings = @subpatterns.zip(node.components).map { |subpattern, component| subpattern.bind(component) }
+        if bindings.all?
+          bindings.flatten
+        end
+      end
+    end
+
+    class Literal
+      def initialize(value)
+        @value = value
+      end
+
+      def bind(node)
+        if node == @value
+          []
+        end
+      end
+    end
+
+    class Variable
+      def bind(node)
+        [node]
+      end
+    end
+
+    class AnonymousVariable
+      def bind(node)
+        []
+      end
+    end
+
+    def p(*args)
+      Decons.new(args.map do |arg|
+        if [Variable, AnonymousVariable, Literal, Decons].include? arg.class
+          arg
+        else
+          Literal.new(arg)
+        end
+      end)
+    end
+
+    def v
+      Variable.new
+    end
+
+    def _
+      AnonymousVariable.new
+    end
+
+    def _case(pattern, &action)
+      OpenStruct.new(pattern: pattern, action: action)
+    end
+
+    module_function :p, :v, :_, :_case
+  end
+end
+
+
+module Inspector
+  module Expectations
+    include AST::Patterns
+
+    def has_binding?(binding)
+      declarations.any? do |declaration|
+        declaration.match(
+            _case(p(:lvasgn, v, _)) { |v| v.to_s == binding },
+            _case(p(:def, v, _, _)) { |v| v.to_s == binding },
+            _case(p(:class, p(:const, p(:cbase), v), _, _)) { |v| v.to_s == binding },
+            _case(p(:class, p(:const, nil, v), _, _)) { |v| v.to_s == binding },
+            _case(p(:module, p(:const, p(:cbase), v), _)) { |v| v.to_s == binding },
+            _case(p(:module, p(:const, nil, v), _)) { |v| v.to_s == binding },
+            _case(_) { false })
+      end
+    end
+  end
+
+  def has_usage?(binding, target)
 
   end
 
