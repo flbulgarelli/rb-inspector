@@ -28,10 +28,8 @@ module Inspector
   module Syntax
     def declarations
       if ast.type == :begin
-        ast.children.select do |it|
-          [:lvasgn, :class, :def, :module].include? it.type
-        end
-      elsif [:lvasgn, :class, :def, :module].include? ast.type
+        ast.children.select(&:declaration?)
+      elsif ast.declaration?
         [ast]
       else
         []

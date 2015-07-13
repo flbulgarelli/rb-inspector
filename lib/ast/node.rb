@@ -12,5 +12,9 @@ module AST
     def components
       [type] + children
     end
+
+    def declaration?
+      [:lvasgn, :class, :def, :module].include? type
+    end
   end
 end
