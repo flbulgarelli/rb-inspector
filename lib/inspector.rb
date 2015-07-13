@@ -8,24 +8,32 @@ module Inspector
     include AST::Patterns
 
     def has_binding?(binding)
-      declarations.any? do |declaration|
+      has_declaration? do |declaration|
         declaration.match(
-            _case(p(:lvasgn, v, _)) { |v| v.to_s == binding },
-            _case(p(:def, v, _, _)) { |v| v.to_s == binding },
-            _case(p(:class, p(:const, p(:cbase), v), _, _)) { |v| v.to_s == binding },
-            _case(p(:class, p(:const, nil, v), _, _)) { |v| v.to_s == binding },
-            _case(p(:module, p(:const, p(:cbase), v), _)) { |v| v.to_s == binding },
-            _case(p(:module, p(:const, nil, v), _)) { |v| v.to_s == binding },
+            _case(p(:lvasgn, v, _)) { |v| v == binding },
+            _case(p(:def, v, _, _)) { |v| v == binding },
+            _case(p(:class, p(:const, p(:cbase), v), _, _)) { |v| v == binding },
+            _case(p(:class, p(:const, nil, v), _, _)) { |v| v == binding },
+            _case(p(:module, p(:const, p(:cbase), v), _)) { |v| v == binding },
+            _case(p(:module, p(:const, nil, v), _)) { |v| v == binding },
             _case(_) { false })
       end
     end
   end
 
   def has_usage?(binding, target)
-
+    has_expression?(binding) do |expression|
+      expression.match(
+          _case(p(:send, _, v)) { |v| v == target },
+          _case(p(:send, p(:const, nil, v), _)) { |v| v == target })
+    end
   end
 
   module Syntax
+    def has_declaration?(&f)
+      declarations.any?(&f)
+    end
+
     def declarations
       if ast.type == :begin
         ast.children.select(&:declaration?)
